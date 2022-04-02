@@ -13,6 +13,8 @@ TESTNET_URL = "https://fullnode.devnet.aptoslabs.com"
 FAUCET_URL = "https://faucet.devnet.aptoslabs.com"
 
 #:!:>section_1
+
+
 class Account:
     """Represents an account as well as the private, public key-pair for the Aptos blockchain."""
 
@@ -25,7 +27,7 @@ class Account:
     def address(self) -> str:
         """Returns the address associated with the given account"""
 
-        return self.auth_key()[-32:]
+        return self.auth_key()
 
     def auth_key(self) -> str:
         """Returns the auth_key for the associated account"""
@@ -38,15 +40,17 @@ class Account:
         """Returns the public key for the associated account"""
 
         return self.signing_key.verify_key.encode().hex()
-#<:!:section_1
+# <:!:section_1
 
 #:!:>section_2
+
+
 class RestClient:
     """A wrapper around the Aptos-core Rest API"""
 
     def __init__(self, url: str) -> None:
         self.url = url
-#<:!:section_2
+# <:!:section_2
 
 #:!:>section_3
     def account(self, account_address: str) -> Dict[str, str]:
@@ -59,10 +63,11 @@ class RestClient:
     def account_resources(self, account_address: str) -> Dict[str, Any]:
         """Returns all resources associated with the account"""
 
-        response = requests.get(f"{self.url}/accounts/{account_address}/resources")
+        response = requests.get(
+            f"{self.url}/accounts/{account_address}/resources")
         assert response.status_code == 200, response.text
         return response.json()
-#<:!:section_3
+# <:!:section_3
 
 #:!:>section_4
     def generate_transaction(self, sender: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -86,7 +91,8 @@ class RestClient:
         """Converts a transaction request produced by `generate_transaction` into a properly signed
         transaction, which can then be submitted to the blockchain."""
 
-        res = requests.post(f"{self.url}/transactions/signing_message", json=txn_request)
+        res = requests.post(
+            f"{self.url}/transactions/signing_message", json=txn_request)
         assert res.status_code == 200, res.text
         to_sign = bytes.fromhex(res.json()["message"][2:])
         signature = account_from.signing_key.sign(to_sign).signature
@@ -101,7 +107,8 @@ class RestClient:
         """Submits a signed transaction to the blockchain."""
 
         headers = {'Content-Type': 'application/json'}
-        response = requests.post(f"{self.url}/transactions", headers=headers, json=txn)
+        response = requests.post(
+            f"{self.url}/transactions", headers=headers, json=txn)
         assert response.status_code == 202, f"{response.text} - {txn}"
         return response.json()
 
@@ -120,7 +127,7 @@ class RestClient:
             assert count < 10, f"transaction {txn_hash} timed out"
             time.sleep(1)
             count += 1
-#<:!:section_4
+# <:!:section_4
 
 #:!:>section_5
     def account_balance(self, account_address: str) -> Optional[int]:
@@ -145,13 +152,16 @@ class RestClient:
                 str(amount),
             ]
         }
-        txn_request = self.generate_transaction(account_from.address(), payload)
+        txn_request = self.generate_transaction(
+            account_from.address(), payload)
         signed_txn = self.sign_transaction(account_from, txn_request)
         res = self.submit_transaction(signed_txn)
         return str(res["hash"])
-#<:!:section_5
+# <:!:section_5
 
 #:!:>section_6
+
+
 class FaucetClient:
     """Faucet creates and funds accounts. This is a thin wrapper around that."""
 
@@ -159,15 +169,15 @@ class FaucetClient:
         self.url = url
         self.rest_client = rest_client
 
-    def fund_account(self, pub_key: str, amount: int) -> None:
+    def fund_account(self, auth_key: str, amount: int) -> None:
         """This creates an account if it does not exist and mints the specified amount of
         coins into that account."""
-
-        txns = requests.post(f"{self.url}/mint?amount={amount}&pub_key={pub_key}")
+        txns = requests.post(
+            f"{self.url}/mint?amount={amount}&auth_key={auth_key}")
         assert txns.status_code == 200, txns.text
         for txn_hash in txns.json():
             self.rest_client.wait_for_transaction(txn_hash)
-#<:!:section_6
+# <:!:section_6
 
 
 #:!:>section_7
@@ -183,18 +193,19 @@ if __name__ == "__main__":
     print(f"Alice: {alice.address()}")
     print(f"Bob: {bob.address()}")
 
-    faucet_client.fund_account(alice.pub_key(), 1_000_000)
-    faucet_client.fund_account(bob.pub_key(), 0)
+    faucet_client.fund_account(alice.auth_key(), 5000)
+    faucet_client.fund_account(bob.auth_key(), 1000)
 
     print("\n=== Initial Balances ===")
     print(f"Alice: {rest_client.account_balance(alice.address())}")
     print(f"Bob: {rest_client.account_balance(bob.address())}")
 
     # Have Alice give Bob 10 coins
-    tx_hash = rest_client.transfer(alice, bob.address(), 1_000)
+    tx_hash = rest_client.transfer(bob, alice.address(), 328)
     rest_client.wait_for_transaction(tx_hash)
 
     print("\n=== Final Balances ===")
     print(f"Alice: {rest_client.account_balance(alice.address())}")
     print(f"Bob: {rest_client.account_balance(bob.address())}")
-#<:!:section_7
+
+# <:!:section_7

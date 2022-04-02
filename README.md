@@ -7,4 +7,4 @@ A Blockchain Dating App You Can Trust
 3. A network built on the foundation of trust
 
 ## Built on the Aptos network
-Read more about Aptos [https://aptoslabs.com/currents/][here.]
+Read more about Aptos [here](https://aptoslabs.com/currents/).
